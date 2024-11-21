@@ -68,7 +68,11 @@ namespace TestService
             StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
         }
 
-        public void WriteToLog(string message) => File.AppendAllText(LogFileName, $"TestService: {message} {DateTime.Now:O} {IsAdministrator()}" + Environment.NewLine);
+        public void WriteToLog(string message)
+        {
+            if (Directory.Exists(Path.GetDirectoryName(LogFileName)))
+                File.AppendAllText(LogFileName, $"TestService: {message} {DateTime.Now:O} {IsAdministrator()}" + Environment.NewLine);
+        }
 
         public static string IsAdministrator()
         {

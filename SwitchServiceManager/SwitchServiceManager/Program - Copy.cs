@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,46 +10,23 @@ using System.Threading;
 
 namespace SwitchServiceManager
 {
-    // Command line:
-    // E:\Apps\project-2023\SetSwitchServiceDate\SwitchServiceManager\SwitchServiceManager\bin\Debug\SwitchServiceManager.exe on 2024-05-07 TestService E:\Temp\SwitchServiceManagerLog.txt
-
-    class Program
+    class ProgramOld
     {
         private const string LogFileName = "E:\\Temp\\MultiseatServiceManagerLog.txt";
         private static readonly DateTime RunDate = new DateTime(2024, 5, 7);
         private const string TestServiceName = "TestService";
 
-        static void Main(string[] args)
+        static void xMain(string[] args)
         {
-            bool? startup = null;
-            if (args.Length > 0 && string.Equals(args[0], "on", StringComparison.InvariantCultureIgnoreCase))
-                startup = true;
-            else if (args.Length > 0 && string.Equals(args[0], "off", StringComparison.InvariantCultureIgnoreCase))
-                startup = false;
 
-            DateTime date;
-            var dateOK = args.Length > 1 &&
-                         DateTime.TryParseExact(args[1], "yyyy-MM-dd", null, DateTimeStyles.None, out date);
-
-            var service = args.Length > 2 ? GetService(args[2]) : null;
-
-            if (!(startup.HasValue && dateOK && service != null))
-            {
-                return;
-            }
-
-            var logFileName = args.Length > 3 ? args[3] : null;
-            var logFileNameOK = string.IsNullOrEmpty(logFileName) ||
-                                Directory.Exists(Path.GetDirectoryName(logFileName)); 
-
-            //var startup = (args.Length > 0 && string.Equals(args[0], "Startup", StringComparison.InvariantCultureIgnoreCase));
+            var startup = (args.Length > 0 && string.Equals(args[0], "Startup", StringComparison.InvariantCultureIgnoreCase));
 
             File.AppendAllText(LogFileName, Environment.NewLine);
 
             try
             {
                 var projectName = Assembly.GetCallingAssembly().GetName().Name;
-                if (startup.Value)
+                if (startup)
                 {
                     StartTestServiceUtc();
                     WriteToLog($"Started");
