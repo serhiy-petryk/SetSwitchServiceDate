@@ -12,80 +12,89 @@ using System.Threading;
 namespace SwitchServiceManager
 {
     // Command line:
-    // E:\Apps\project-2023\SetSwitchServiceDate\SwitchServiceManager\SwitchServiceManager\bin\Debug\SwitchServiceManager.exe on 2024-05-07 TestService E:\Temp\SwitchServiceManagerLog.txt
+    // E:\Apps\project-2023\SetSwitchServiceDate\SwitchServiceManager\SwitchServiceManager\bin\Debug\SwitchServiceManager.exe on TestService 2024-05-07 E:\Temp\SwitchServiceManagerLog.txt
 
     class Program
     {
-        private const string LogFileName = "E:\\Temp\\MultiseatServiceManagerLog.txt";
-        private static readonly DateTime RunDate = new DateTime(2024, 5, 7);
-        private const string TestServiceName = "TestService";
+        private static string _logFileName;
 
         static void Main(string[] args)
         {
-            bool? startup = null;
-            if (args.Length > 0 && string.Equals(args[0], "on", StringComparison.InvariantCultureIgnoreCase))
-                startup = true;
-            else if (args.Length > 0 && string.Equals(args[0], "off", StringComparison.InvariantCultureIgnoreCase))
-                startup = false;
-
-            DateTime date;
-            var dateOK = args.Length > 1 &&
-                         DateTime.TryParseExact(args[1], "yyyy-MM-dd", null, DateTimeStyles.None, out date);
-
-            var service = args.Length > 2 ? GetService(args[2]) : null;
-
-            if (!(startup.HasValue && dateOK && service != null))
+            if (args.Length == 0 || args[0] == "?" || args[0] == "/?" || args.Length<3)
             {
+                Console.WriteLine($"Startup or shutdown the service at the specified date. The program result saves in Window application log.");
+                Console.WriteLine();
+                Console.WriteLine($"The program must run in ADMINISTRATOR (!!!) mode");
+                Console.WriteLine();
+                Console.WriteLine($"SwitchServiceManager.exe on|off ServiceName date [LogFileName]");
+                Console.WriteLine();
+                Console.WriteLine($"    on|off          startup (on) or shutdown (off) the service");
+                Console.WriteLine($"    ServiceName     service name (not display name !!!)");
+                Console.WriteLine($"    date            date in format yyyy-MM-dd when to startup/shutdown the service, e.g., 2024-01-03 means 2024, January 3");
+                Console.WriteLine($"    [LogFileName]   (optional) full path to log file name");
                 return;
             }
 
-            var logFileName = args.Length > 3 ? args[3] : null;
-            var logFileNameOK = string.IsNullOrEmpty(logFileName) ||
-                                Directory.Exists(Path.GetDirectoryName(logFileName)); 
+            bool? startup = null;
+            if (string.Equals(args[0], "on", StringComparison.InvariantCultureIgnoreCase))
+                startup = true;
+            else if (string.Equals(args[0], "off", StringComparison.InvariantCultureIgnoreCase))
+                startup = false;
 
-            //var startup = (args.Length > 0 && string.Equals(args[0], "Startup", StringComparison.InvariantCultureIgnoreCase));
+            var service = args.Length > 2 ? GetService(args[1]) : null;
+            var dateOk = DateTime.TryParseExact(args[2], "yyyy-MM-dd", null, DateTimeStyles.None, out var date);
+            _logFileName = args.Length > 3 ? args[3] : null;
+            var logFileNameOk = string.IsNullOrEmpty(_logFileName) || Directory.Exists(Path.GetDirectoryName(_logFileName));
 
-            File.AppendAllText(LogFileName, Environment.NewLine);
-
-            try
+            if (startup.HasValue && service != null && dateOk && logFileNameOk)
             {
-                var projectName = Assembly.GetCallingAssembly().GetName().Name;
-                if (startup.Value)
+                if (!string.IsNullOrEmpty(_logFileName))
+                    File.AppendAllText(_logFileName, Environment.NewLine);
+
+                try
                 {
-                    StartTestServiceUtc();
-                    WriteToLog($"Started");
-                    using (var eventLog = new EventLog("Application"))
+                    var projectName = Assembly.GetCallingAssembly().GetName().Name;
+                    if (startup.Value)
                     {
-                        eventLog.Source = ".NET Runtime";
-                        eventLog.WriteEntry($"{projectName}: start service {TestServiceName}", EventLogEntryType.Information, 1000);
-                        // eventLog.WriteEntry(".NET Runtime", $"{projectName}: start service {TestServiceName}", EventLogEntryType.Information, 1000);
+                        StartServiceAtDate(service, date);
+                        WriteToTextLog($"Started");
+                        WriteToApplicationLog($"{projectName}: '{service.ServiceName}' service started at {date:yyyy-MM-dd}");
+                    }
+                    else
+                    {
+                        StopServiceAtDate(service, date);
+                        WriteToTextLog($"Stopped");
+                        WriteToApplicationLog($"{projectName}: '{service.ServiceName}' service shutdown at {date:yyyy-MM-dd}");
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    StopTestServiceUtc();
-                    WriteToLog($"Stopped");
-                    using (var eventLog = new EventLog("Application"))
-                    {
-                        eventLog.Source = ".NET Runtime";
-                        /*EventLog.WriteEntry(
-                            ".NET Runtime", //magic
-                            "Your error message goes here!!",
-                            EventLogEntryType.Warning,
-                            1000); //magic*/
-                        eventLog.WriteEntry($"{projectName}: shutdown service {TestServiceName}", EventLogEntryType.Information, 1000);
-                    }
+                    WriteToTextLog("ERROR: " + ex.Message);
                 }
+
             }
-            catch (Exception ex)
+            else // invalid arguments
             {
-                WriteToLog("ERROR: " + ex.Message);
+                WriteToTextLog("ERROR: invalid arguments");
             }
         }
 
-        public static void WriteToLog(string message) => File.AppendAllText(LogFileName, $"MultiseatManagerService: {message} {DateTime.Now:O} {IsAdministrator()}" + Environment.NewLine);
+        private static void WriteToApplicationLog(string message)
+        {
+            using (var eventLog = new EventLog("Application"))
+            {
+                eventLog.Source = ".NET Runtime";
+                eventLog.WriteEntry(message, EventLogEntryType.Information, 1000);
+            }
+        }
 
-        public static string IsAdministrator()
+        private static void WriteToTextLog(string message)
+        {
+            if (!string.IsNullOrEmpty(_logFileName))
+                File.AppendAllText(_logFileName, $"SwitchServiceManager: {message} {DateTime.Now:O} {IsAdministrator()}" + Environment.NewLine);
+        }
+
+        private static string IsAdministrator()
         {
             using (var identity = WindowsIdentity.GetCurrent())
             {
@@ -94,64 +103,59 @@ namespace SwitchServiceManager
             }
         }
 
-        private static void StartTestServiceUtc()
+        private static void StartServiceAtDate(ServiceController service, DateTime atDate)
         {
-            var testService = GetService(TestServiceName);
-            if (testService != null && !CheckServiceStatus(TestServiceName, ServiceControllerStatus.Running))
+            if (service != null && !CheckServiceStatus(service, ServiceControllerStatus.Running))
             {
-                WriteToLog($"BeforeStarted");
-                var dayDiff = Convert.ToInt32((DateTime.UtcNow - RunDate).TotalDays);
+                WriteToTextLog($"BeforeStarted");
+                var dayDiff = Convert.ToInt32((DateTime.UtcNow - atDate).TotalDays);
                 var systime = new SYSTEMTIME(DateTime.UtcNow.AddDays(-dayDiff));
                 SetSystemTime(ref systime);
 
-                WriteToLog($"BeforeTestStarted");
-                testService.Start();
-                testService.WaitForStatus(ServiceControllerStatus.Running);
+                WriteToTextLog($"BeforeTestStarted");
+                service.Start();
+                service.WaitForStatus(ServiceControllerStatus.Running);
                 System.Threading.Thread.Sleep(5000);
-                WriteToLog($"AfterTestStarted");
+                WriteToTextLog($"AfterTestStarted");
 
                 systime = new SYSTEMTIME(DateTime.UtcNow.AddDays(dayDiff));
                 SetSystemTime(ref systime);
-                WriteToLog($"AfterStarted");
+                WriteToTextLog($"AfterStarted");
             }
         }
 
-        private static void StopTestServiceUtc()
+        private static void StopServiceAtDate(ServiceController service, DateTime atDate)
         {
-            var testService = GetService(TestServiceName);
-            if (testService != null && !CheckServiceStatus(TestServiceName, ServiceControllerStatus.Stopped))
+            if (service != null && !CheckServiceStatus(service, ServiceControllerStatus.Stopped))
             {
-                WriteToLog($"BeforeStop");
-                var dayDiff = Convert.ToInt32((DateTime.UtcNow - RunDate).TotalDays);
+                WriteToTextLog($"BeforeStop");
+                var dayDiff = Convert.ToInt32((DateTime.UtcNow - atDate).TotalDays);
                 var systime = new SYSTEMTIME(DateTime.UtcNow.AddDays(-dayDiff));
                 SetSystemTime(ref systime);
 
-                WriteToLog($"BeforeTestStopped");
-                testService.Stop();
-                testService.WaitForStatus(ServiceControllerStatus.Stopped);
+                WriteToTextLog($"BeforeTestStopped");
+                service.Stop();
+                service.WaitForStatus(ServiceControllerStatus.Stopped);
                 System.Threading.Thread.Sleep(1000);
-                WriteToLog($"AfterTestStopped");
+                WriteToTextLog($"AfterTestStopped");
 
                 systime = new SYSTEMTIME(DateTime.UtcNow.AddDays(dayDiff));
                 SetSystemTime(ref systime);
-                WriteToLog($"AfterStopped");
+                WriteToTextLog($"AfterStopped");
             }
         }
 
-        public static ServiceController GetService(string serviceName) => ServiceController.GetServices()
+        private static ServiceController GetService(string serviceName) => ServiceController.GetServices()
             .FirstOrDefault(a => string.Equals(a.ServiceName, serviceName));
 
-        public static bool CheckServiceStatus(string serviceName, ServiceControllerStatus requiredStatus)
+        private static bool CheckServiceStatus(ServiceController service, ServiceControllerStatus requiredStatus)
         {
             ServiceControllerStatus status;
             uint counter = 0;
             do
             {
-                ServiceController service = GetService(serviceName);
                 if (service == null)
-                {
                     return false;
-                }
 
                 Thread.Sleep(100);
                 status = service.Status;
@@ -225,7 +229,5 @@ namespace SwitchServiceManager
             [DllImport("advapi32.dll", SetLastError = true)]
             public static extern bool SetServiceStatus(System.IntPtr handle, ref ServiceStatus serviceStatus);
         }
-
-
     }
 }
