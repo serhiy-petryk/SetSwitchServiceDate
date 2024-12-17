@@ -34,12 +34,15 @@ namespace TestMainService
             // 
             // serviceProcessInstaller1
             // 
+            this.serviceProcessInstaller1.Account = System.ServiceProcess.ServiceAccount.LocalSystem;
             this.serviceProcessInstaller1.Password = null;
             this.serviceProcessInstaller1.Username = null;
             // 
             // serviceInstaller1
             // 
-            this.serviceInstaller1.ServiceName = "Service1";
+            this.serviceInstaller1.Description = "Test Main Service";
+            this.serviceInstaller1.DisplayName = "Test Main Service";
+            this.serviceInstaller1.ServiceName = "TestMainService";
             // 
             // ProjectInstaller
             // 

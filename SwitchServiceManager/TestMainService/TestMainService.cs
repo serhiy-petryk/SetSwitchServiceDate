@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.ServiceProcess;
@@ -18,6 +21,13 @@ namespace TestMainService
 
         protected override void OnStart(string[] args)
         {
+            if (args.Length == 0)
+            {
+                var iniFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "args.ini");
+                var argsExists = File.Exists(iniFilePath);
+                args = File.ReadAllLines(iniFilePath).Where(a => !a.StartsWith("#")).ToArray();
+            }
+
             // Update the service state to Start Pending.
             var serviceStatus = new ServiceStatus
             {
@@ -27,7 +37,26 @@ namespace TestMainService
             StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
 
             var argString = string.Join(" ", args);
-            WriteToLog($"Started, args: {argString}");
+            // WriteToLog($"Started, {AppDomain.CurrentDomain.BaseDirectory} {Environment.CurrentDirectory} {System.Reflection.Assembly.GetEntryAssembly().Location} {Process.GetCurrentProcess().MainModule.FileName} {argsExists} args: {argString}");
+            var childService = args.Length > 0 ? GetService(args[0]) : null;
+            var childServiceStatus = childService?.Status.ToString() ?? "No service";
+            WriteToLog($"Started, args: {argString}; service status: {childServiceStatus}");
+
+            if (childService != null && childService.Status == ServiceControllerStatus.Stopped )
+            {
+                DateTime? date = null;
+                if (args.Length > 1)
+                {
+                    var dateOk =
+                        DateTime.TryParseExact(args[2], "yyyy-MM-dd", null, DateTimeStyles.None, out var date2);
+                    if (dateOk) date = date2;
+                }
+
+                childService.Start();
+                childService.WaitForStatus(ServiceControllerStatus.Running);
+                // System.Threading.Thread.Sleep(5000);
+                WriteToLog($"Service {childService.ServiceName} started");
+            }
 
             // Update the service state to Running.
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
@@ -52,6 +81,9 @@ namespace TestMainService
                 return principal.IsInRole(WindowsBuiltInRole.Administrator) ? "Admin" : "No admin";
             }
         }
+
+        private static ServiceController GetService(string serviceName) => ServiceController.GetServices()
+            .FirstOrDefault(a => string.Equals(a.ServiceName, serviceName));
 
         //============================================
         //============================================
