@@ -4,16 +4,16 @@ using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.ServiceProcess;
 
-namespace TestService
+namespace TestMainService
 {
-    public partial class TestService : ServiceBase
+    public partial class TestMainService : ServiceBase
     {
-        private const string LogFileName = "E:\\Temp\\TestServiceLog.txt";
+        private const string LogFileName = "E:\\Temp\\TestMainServiceLog.txt";
 
-        public TestService()
+        public TestMainService()
         {
             InitializeComponent();
-            ServiceName = "TestService";
+            ServiceName = "TestMainService";
         }
 
         protected override void OnStart(string[] args)
@@ -26,7 +26,8 @@ namespace TestService
             };
             StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
 
-            WriteToLog($"Started");
+            var argString = string.Join(" ", args);
+            WriteToLog($"Started, args: {argString}");
 
             // Update the service state to Running.
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
@@ -35,46 +36,15 @@ namespace TestService
 
         protected override void OnStop()
         {
-            // Update the service state to Stop Pending.
-            var serviceStatus = new ServiceStatus
-            {
-                dwCurrentState = ServiceState.SERVICE_STOP_PENDING,
-                dwWaitHint = 100000
-            };
-            StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
-
-            WriteToLog($"Stopped");
-
-            // Update the service state to Stopped.
-            serviceStatus.dwCurrentState = ServiceState.SERVICE_STOPPED;
-            StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
         }
 
-        protected override void OnShutdown()
-        {
-            // Update the service state to Stop Pending.
-            var serviceStatus = new ServiceStatus
-            {
-                dwCurrentState = ServiceState.SERVICE_STOP_PENDING,
-                dwWaitHint = 100000
-            };
-            StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
-
-            WriteToLog($"Shutdown");
-            base.OnShutdown();
-
-            // Update the service state to Stopped.
-            serviceStatus.dwCurrentState = ServiceState.SERVICE_STOPPED;
-            StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
-        }
-
-        public void WriteToLog(string message)
+        private void WriteToLog(string message)
         {
             if (Directory.Exists(Path.GetDirectoryName(LogFileName)))
-                File.AppendAllText(LogFileName, $"TestService: {message} {DateTime.Now:O} {IsAdministrator()}" + Environment.NewLine);
+                File.AppendAllText(LogFileName, $"TestMainService: {message} {DateTime.Now:O} {IsAdministrator()}" + Environment.NewLine);
         }
 
-        public static string IsAdministrator()
+        private static string IsAdministrator()
         {
             using (var identity = WindowsIdentity.GetCurrent())
             {

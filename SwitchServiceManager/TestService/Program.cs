@@ -14,12 +14,7 @@ namespace TestService
         /// </summary>
         static void Main()
         {
-            ServiceBase[] ServicesToRun;
-            ServicesToRun = new ServiceBase[]
-            {
-                new TestService()
-            };
-            ServiceBase.Run(ServicesToRun);
+            ServiceBase.Run(new TestService());
         }
     }
 }

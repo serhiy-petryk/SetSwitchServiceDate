@@ -4,15 +4,14 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{412BBD96-DDA8-4C31-AABA-CEAE6C1C058C}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>SwitchServiceManager</RootNamespace>
-    <AssemblyName>SwitchServiceManager</AssemblyName>
+    <ProjectGuid>{2AED1D85-5C06-4B00-B618-150FFB839D0B}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>TestMainService</RootNamespace>
+    <AssemblyName>TestMainService</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -39,17 +38,17 @@
     <Reference Include="System.ServiceProcess" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TestMainService.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="TestMainService.Designer.cs">
+      <DependentUpon>TestMainService.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="ServiceShutdown.bat">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="ServiceStartup.bat">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

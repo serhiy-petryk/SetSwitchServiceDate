@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SwitchServiceManager")]
+[assembly: AssemblyTitle("TestMainService")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Microsoft")]
-[assembly: AssemblyProduct("SwitchServiceManager")]
+[assembly: AssemblyProduct("TestMainService")]
 [assembly: AssemblyCopyright("Copyright © Microsoft 2024")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -19,7 +19,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("412bbd96-dda8-4c31-aaba-ceae6c1c058c")]
+[assembly: Guid("2aed1d85-5c06-4b00-b618-150ffb839d0b")]
 
 // Version information for an assembly consists of the following four values:
 //
