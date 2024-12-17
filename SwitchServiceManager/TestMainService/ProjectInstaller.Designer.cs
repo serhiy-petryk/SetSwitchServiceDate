@@ -43,6 +43,7 @@ namespace TestMainService
             this.serviceInstaller1.Description = "Test Main Service";
             this.serviceInstaller1.DisplayName = "Test Main Service";
             this.serviceInstaller1.ServiceName = "TestMainService";
+            this.serviceInstaller1.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
             // 
             // ProjectInstaller
             // 

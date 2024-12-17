@@ -42,7 +42,7 @@ namespace TestMainService
             var childServiceStatus = childService?.Status.ToString() ?? "No service";
             WriteToLog($"Started, args: {argString}; service status: {childServiceStatus}");
 
-            if (childService != null && childService.Status == ServiceControllerStatus.Stopped )
+            if (childService != null && childService.Status == ServiceControllerStatus.Stopped)
             {
                 DateTime? date = null;
                 if (args.Length > 1)
@@ -59,8 +59,10 @@ namespace TestMainService
             }
 
             // Update the service state to Running.
+            WriteToLog($"On Start: BeforeEnd");
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
             StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
+            WriteToLog($"On Start: AfterEnd");
         }
 
         protected override void OnStop()
@@ -70,7 +72,7 @@ namespace TestMainService
         private void WriteToLog(string message)
         {
             if (Directory.Exists(Path.GetDirectoryName(LogFileName)))
-                File.AppendAllText(LogFileName, $"TestMainService: {message} {DateTime.Now:O} {IsAdministrator()}" + Environment.NewLine);
+                File.AppendAllText(LogFileName, $"TestMainService: {message}; {DateTime.Now:O} {IsAdministrator()}" + Environment.NewLine);
         }
 
         private static string IsAdministrator()
