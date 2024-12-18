@@ -6,7 +6,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.ServiceProcess;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace TestMainService
@@ -14,6 +13,13 @@ namespace TestMainService
     public partial class TestMainService : ServiceBase
     {
         private const string LogFileName = "E:\\Temp\\TestMainServiceLog.txt";
+        private static readonly TimeSpan MaxTimeForStartup = TimeSpan.FromSeconds(90);
+
+        /*private Timer _timer;
+        private void TickTimer(object state)
+        {
+            this.Stop();
+        }*/
 
         public TestMainService()
         {
@@ -61,13 +67,30 @@ namespace TestMainService
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
             StatusHelper.SetServiceStatus(this.ServiceHandle, ref serviceStatus);
 
+            var minStartTime = DateTime.MaxValue;
+            foreach (var p in Process.GetProcesses())
+            {
+                try
+                {
+                    if (minStartTime > p.StartTime) minStartTime = p.StartTime;
+                }
+                catch (Exception e) { } // Access denied error
+            }
+
+            var onStartup = (DateTime.Now - minStartTime) < MaxTimeForStartup;
+
             Task.Run(() =>
             {
-                WriteToLog($"Task.Run. Status: {childService.Status}");
+                WriteToLog($"Task.Run. Status: {childService.Status}. Startup: {onStartup}");
                 if (childService.Status == ServiceControllerStatus.Stopped)
                 {
-                    // if (childService.StartType != ServiceStartMode.Automatic)
+                    if (onStartup && childService.StartType == ServiceStartMode.Automatic)
                     {
+                        WriteToLog($"Task.Run. Startup");
+                    }
+                    else
+                    {
+                        WriteToLog($"Task.Run. Before start service");
                         childService.Start();
                     }
 
@@ -75,14 +98,11 @@ namespace TestMainService
                     WriteToLog($"Service {childService.ServiceName} started. Day difF: {dayDiff}");
                 }
                 WriteToLog($"Task.Run. End code. Status {childService.Status}");
+                // _timer = new Timer(new TimerCallback(TickTimer), null, 1000, Timeout.Infinite);
             });
 
             WriteToLog($"On Start: AfterEnd");
         }
-
-        /*protected override void OnStop()
-        {
-        }*/
 
         private void WriteToLog(string message)
         {
